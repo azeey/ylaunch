@@ -1,0 +1,32 @@
+TrainBase: 
+    cmd: java cs362.Learn
+    args: 
+        - -mode: train
+        - -task: classification
+    #    - -algorithm: naive_bayes
+    #    - -model_file: bio.nb.model
+
+
+TrainBioBase: 
+    base: TrainBase
+    args: 
+        - -mode: train
+        - -task: classification
+
+cs362Learn1:
+    base: TrainBase
+    args:
+        - -algorithm: perceptron
+        - -test
+    #    - -model_file: bio.nb.model
+    #    - -task: classification
+    #    - -data: ../hw2/data/bio.train
+
+cs362Learn2:
+    cmd: java cs362.Learn
+    args:
+        - -mode: train
+        - -algorithm: naive_bayes
+        - -model_file: bio.nb.model
+        - -task: classification
+        - -data: ../hw2/data/bio.train
