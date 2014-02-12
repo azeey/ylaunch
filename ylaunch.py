@@ -23,6 +23,9 @@
 import argparse
 import yaml
 import copy
+import shlex
+import subprocess
+import os
 
 def create_config(ydict):
     """Populates a new dict using data and inheritance in the yaml config file
@@ -51,6 +54,8 @@ def create_config(ydict):
         if 'args' not in config:
             config['args'] = yconf_items.get('args',[])
 
+        config['display'] = yconf_items.get('display', True)
+
         if has_inheritance:
             # Go through the args of the instance and override whatever it
             # inherited from the base
@@ -63,6 +68,8 @@ def create_config(ydict):
                         for elem in config['args']:
                             if arg_key in elem:
                                 arg_key_found = True
+                                # Replace value
+                                elem[arg_key] = arg_obj[arg_key]
                                 break
                         if not arg_key_found:
                             config['args'].append(arg_obj)
@@ -87,18 +94,42 @@ def create_cmds(config):
 
     cmds = []
     for key, item in config.items():
-        cmdline = item['cmd']
-        for arg_obj in item['args']:
-            if isinstance(arg_obj, dict):
-                for arg_key,arg_item in arg_obj.items():
-                    cmdline += " {} {}".format(arg_key, arg_item)
-            else:
-                cmdline += " {}".format(arg_obj)
+        if item['display']:
+            cmdline = item['cmd']
+            for arg_obj in item['args']:
+                if isinstance(arg_obj, dict):
+                    for arg_key,arg_item in arg_obj.items():
+                        cmdline += " {} {}".format(arg_key, arg_item)
+                else:
+                    cmdline += " {}".format(arg_obj)
 
-        print key, cmdline
-        cmds.append(cmdline)
+            #print key, cmdline
+            cmds.append(cmdline)
 
     return cmds
+
+def cmd_ui(cmds):
+    """UI for selecting command
+
+    :cmds: @todo
+    :returns: @todo
+
+    """
+    for i, cmd in enumerate(cmds):
+        print i, cmd
+
+    try:
+        which_cmd = int(raw_input("Select command:"))
+        #cmd = shlex.split(cmds[i])
+        cmd = cmds[which_cmd]
+
+        print
+        print cmd
+        os.system(cmd)
+    except Exception as e:
+        print "Can't run command"
+        print e
+
 
 def main():
     parser = argparse.ArgumentParser(description='YAML based command launcher')
@@ -108,7 +139,8 @@ def main():
 
     proc_config = create_config(ydict)
     #print proc_config
-    create_cmds(proc_config)
+    cmds = create_cmds(proc_config)
+    cmd_ui(cmds)
 
 
 if __name__ == '__main__':
