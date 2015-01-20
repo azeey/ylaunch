@@ -34,7 +34,7 @@ def create_config(ydict):
     :returns: Populated dict
 
     """
-    proc_config = {}
+    proc_config = []
     for key, yconf_items in ydict.items():
         #print key
         #print yconf_items
@@ -46,6 +46,8 @@ def create_config(ydict):
             has_inheritance = True
         else:
             config = copy.deepcopy(yconf_items)
+
+        config['name'] = key
 
         # We need the keys to be present so we don't throw an unnecessary exception
         if 'cmd' not in config:
@@ -78,13 +80,13 @@ def create_config(ydict):
                     if not arg_obj in config['args']:
                         config['args'].append(arg_obj)
 
-        proc_config[key] = config
+        proc_config.append(config)
         #print "Config", config
         #print "Proc Config", proc_config
 
     return proc_config
 
-def create_cmds(config):
+def create_cmds(config, extra_args):
     """Takes a populated config file and generates a command for each entry
 
     :config: @todo
@@ -93,7 +95,7 @@ def create_cmds(config):
     """
 
     cmds = []
-    for key, item in config.items():
+    for item in config:
         if item['display']:
             cmdline = item['cmd']
             for arg_obj in item['args']:
@@ -104,27 +106,35 @@ def create_cmds(config):
                     cmdline += " {}".format(arg_obj)
 
             #print key, cmdline
-            cmds.append(cmdline)
+
+            # Add extra args
+            cmdline += " " + " ".join(extra_args)
+            cmds.append((item['name'], cmdline))
 
     return cmds
 
-def cmd_ui(cmds):
+def cmd_ui(cmds, ylaunch_args):
     """UI for selecting command
 
     :cmds: @todo
     :returns: @todo
 
     """
-    for i, cmd in enumerate(cmds):
-        print i, cmd
+    if ylaunch_args.run is None:
+        for i,item in enumerate(cmds):
+            name, cmd = item
+            print i, name, cmd
 
     try:
-        which_cmd = int(raw_input("Select command:"))
+        if ylaunch_args.run is not None:
+            which_cmd = ylaunch_args.run
+        else:
+            which_cmd = int(raw_input("Select command:"))
         #cmd = shlex.split(cmds[i])
-        cmd = cmds[which_cmd]
+        name, cmd = cmds[which_cmd]
 
         print
-        print cmd
+        print name, cmd
         os.system(cmd)
     except Exception as e:
         print "Can't run command"
@@ -134,13 +144,14 @@ def cmd_ui(cmds):
 def main():
     parser = argparse.ArgumentParser(description='YAML based command launcher')
     parser.add_argument('file', metavar='FILE', help='YAML file')
-    ylaunch_args = parser.parse_args()
+    parser.add_argument('-r', '--run', type=int, help='Run command without selection prompt')
+    ylaunch_args, extra_args = parser.parse_known_args()
     ydict = yaml.load(open(ylaunch_args.file,'r'))
 
     proc_config = create_config(ydict)
     #print proc_config
-    cmds = create_cmds(proc_config)
-    cmd_ui(cmds)
+    cmds = create_cmds(proc_config, extra_args)
+    cmd_ui(cmds, ylaunch_args)
 
 
 if __name__ == '__main__':
